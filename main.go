@@ -1,22 +1,20 @@
 package main
 
 import (
-	"bufio"
 	"errors"
 	"fmt"
 	"os"
-	"regexp"
 	"strconv"
-	"strings"
 	"unicode/utf8"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 type model struct {
-	recipes          []recipe
-	recipe_index     int
-	incredient_index int
+	recipes           []recipe
+	recipe_index      int
+	incredient_index  int
+	meal_plan_content []section_content
 }
 
 func (m *model) CurrentRecipe() *recipe {
@@ -30,68 +28,6 @@ func (m *model) CurrentIncredient() (*incredient, error) {
 	}
 
 	return nil, errors.New("No incredient selected")
-}
-
-type recipe struct {
-	name        string
-	incredience []incredient
-	amount      int
-}
-
-type category int
-
-const (
-	VEGI category = iota
-	VEGTABLE
-	COOL
-	ASIA
-	FROZEN
-	PASTA
-	MILK
-	OTHER
-	UNDEFINED
-)
-
-func (ca category) String() string {
-	return [...]string{"Vegi-Regal", "Gemüse", "Kühl-Regal", "Asia-Regal", "TK-Regal", "Nudel-Regal", "Milch-Regal", "Gewürztes-Süßigkeiten-Regal", ""}[ca]
-}
-
-func (ca category) Symbol() string {
-	return [...]string{"🌱", "🥕", "🧀", "🍙", "🧊", "🍝", "🥛", "🍫", "  "}[ca]
-}
-
-func categoryFromInt(i int) category {
-	return category(i - 1)
-}
-
-type stage_state int
-
-const (
-	NOT_STAGED stage_state = iota
-	MABY
-	STAGED
-)
-
-const stage_state_max = 2
-
-func (i *stage_state) Next() {
-	if *i < stage_state_max {
-		*i += 1
-	}
-}
-
-func (i *stage_state) Prev() {
-	if *i > 0 {
-		*i -= 1
-	}
-}
-
-type incredient struct {
-	name     string
-	amount   float32
-	unit     string
-	category category
-	staged   stage_state
 }
 
 func (m model) Indices() (int, int) {
@@ -159,15 +95,24 @@ func (m model) View() string {
 	ri, ii := m.Indices()
 
 	s := "Zutatenliste:\n\n"
+
+	if len(m.recipes) == 0 {
+		s += "Es befinden sich keine Rezepte auf dem Essensplan …\n\n"
+	}
+
 	for i, recipe := range m.recipes {
 		cursor_sym := " "
 		if ri == i && ii == -1 {
 			cursor_sym = ">"
 		}
 
-		s += fmt.Sprintf(" %s  %d mal %s\n", cursor_sym, recipe.amount, recipe.name)
+		s += fmt.Sprintf(" %s  %d x %s\n", cursor_sym, recipe.amount, recipe.name)
 
 		if i == ri {
+			if len(recipe.incredience) == 0 {
+				s += "      Keine Zutaten gefunden …\n"
+			}
+
 			for j, incredient := range recipe.incredience {
 				if ii == j {
 					cursor_sym = ">"
@@ -187,7 +132,7 @@ func (m model) View() string {
 
 				s +=
 					fmt.Sprintf(
-						" %s  | %s  %4s %-4s %s %s\n",
+						" %s    %s  %4s %-4s %s %s\n",
 						cursor_sym,
 						incredient_name,
 						incredient_amount,
@@ -196,8 +141,8 @@ func (m model) View() string {
 						staged_string,
 					)
 			}
+			s += "\n"
 		}
-
 	}
 	s += "\n\nPress q to quit"
 
@@ -211,85 +156,6 @@ func main() {
 		fmt.Printf("The last model state was: %v", m)
 		os.Exit(1)
 	}
-}
-
-func buildIncredientData() []recipe {
-	file, err := os.Open("resources/food/Essensplan.md")
-	if err != nil {
-		fmt.Printf("Failed to open 'Essensplan.md' with error: %v", err)
-	}
-	defer file.Close()
-
-	var recipes []recipe
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		row := scanner.Text()
-		re := regexp.MustCompile(`\[\[(.*)\]\]`)
-		match := re.FindStringSubmatch(row)
-
-		if match != nil {
-			recipe := recipe{name: match[1], amount: 1}
-			recipes = append(recipes, recipe)
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		fmt.Println(err)
-	}
-
-	for i, recipe := range recipes {
-		recipes[i].incredience = extractIncredientsFromRecipe(recipe.name)
-	}
-
-	return recipes
-}
-
-func extractIncredientsFromRecipe(recipe string) []incredient {
-	path := fmt.Sprintf("resources/food/📝 Rezepte/%s.md", recipe)
-
-	file, err := os.Open(path)
-	if err != nil {
-		fmt.Printf("Failed to open '%s' with error: %v", path, err)
-	}
-	defer file.Close()
-
-	var incredience []incredient
-	scanner := bufio.NewScanner(file)
-
-	for scanner.Scan() {
-		row := scanner.Text()
-
-		re := regexp.MustCompile(`- \[.\] ([0-9]+[.,][0-9]+|[0-9]+)?\s*(?i)(g|kg|l|ml|el|tl)?\b\s*(.*)`)
-		incredient_match := re.FindStringSubmatch(row)
-
-		if incredient_match != nil {
-			name := "INCREDIENT_MISSING"
-			amount := 1.0
-			unit := ""
-
-			if value, err := strconv.ParseFloat(incredient_match[1], 32); err == nil {
-				amount = value
-			}
-
-			if len(incredient_match[3]) > 0 {
-				name = strings.TrimSpace(incredient_match[3])
-			}
-
-			if len(incredient_match[2]) > 0 {
-				unit = strings.TrimSpace(incredient_match[2])
-			}
-
-			incredient := incredient{name: name, amount: float32(amount), unit: unit, category: UNDEFINED, staged: STAGED}
-			incredience = append(incredience, incredient)
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		fmt.Println(err)
-	}
-
-	return incredience
 }
 
 func (m *model) HandleDownMotion() {
