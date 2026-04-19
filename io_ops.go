@@ -23,7 +23,7 @@ func buildIncredientData() []recipe {
 
 	for scanner.Scan() {
 		row := scanner.Text()
-		re := regexp.MustCompile(`\[\[(.*)\]\]`)
+		re := regexp.MustCompile(`- \[ \].*\[\[(.*)\]\]`)
 		match := re.FindStringSubmatch(row)
 
 		if match != nil {
