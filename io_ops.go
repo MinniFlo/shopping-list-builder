@@ -8,12 +8,14 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/goccy/go-yaml"
 )
 
-func buildIncredientData() []recipe {
-	file, err := os.Open("resources/food/Essensplan.md")
+func buildIncredientData(cfg config) []recipe {
+	file, err := os.Open(cfg.MealPlanPath)
 	if err != nil {
-		fmt.Printf("Failed to open the Essensplan.md with error: %v\n\n", err)
+		fmt.Printf("Failed to open the Essensplan.md at '%v' with error: %v\n\n", cfg.MealPlanPath, err)
 		os.Exit(1)
 	}
 	defer file.Close()
@@ -37,14 +39,14 @@ func buildIncredientData() []recipe {
 	}
 
 	for i, recipe := range recipes {
-		recipes[i].incredience = extractIncredientsFromRecipe(recipe.name)
+		recipes[i].incredience = extractIncredientsFromRecipe(recipe.name, cfg.RecipesPath)
 	}
 
 	return recipes
 }
 
-func extractIncredientsFromRecipe(recipe string) []incredient {
-	path := fmt.Sprintf("resources/food/📝 Rezepte/%s.md", recipe)
+func extractIncredientsFromRecipe(recipe string, base_path string) []incredient {
+	path := fmt.Sprintf("%s%s.md", base_path, recipe)
 
 	file, err := os.Open(path)
 	if err != nil {
@@ -101,4 +103,32 @@ func createIncredientFromString(s string) (incredient, error) {
 func createMealPlanContent() []section_content {
 	var section_content []section_content
 	return section_content
+}
+
+func loadConfig() config {
+	var cfg config
+
+	var local_config = "./.shopping_list_builder.yml"
+	local_data, err := os.ReadFile(local_config)
+	if err == nil {
+		if err := yaml.Unmarshal(local_data, &cfg); err == nil {
+			return cfg
+		} else {
+			fmt.Printf("Found but could not parse local config file: %v\n\n", err)
+		}
+	}
+
+	var user_config = "~/.config/shopping_list_builder.yml"
+	user_data, err := os.ReadFile(user_config)
+	if err == nil {
+		if err := yaml.Unmarshal(user_data, &cfg); err == nil {
+			return cfg
+		} else {
+			fmt.Printf("Found but could not parse user config file: %v\n\n", err)
+		}
+	}
+
+	fmt.Printf("Could not find parsable config files at '%v' or '%v'", local_config, user_config)
+	os.Exit(1)
+	return cfg
 }

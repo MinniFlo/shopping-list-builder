@@ -2,7 +2,10 @@ module shopping-list-builder
 
 go 1.25.1
 
-require github.com/charmbracelet/bubbletea v1.3.10
+require (
+	github.com/charmbracelet/bubbletea v1.3.10
+	github.com/goccy/go-yaml v1.19.2
+)
 
 require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect

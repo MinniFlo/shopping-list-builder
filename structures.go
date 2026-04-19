@@ -62,8 +62,14 @@ type recipe struct {
 	amount      int
 }
 
+// TODO: Rethink what should happen with this
 type section_content struct {
 	name         string
 	catecategory category
 	content      string
+}
+
+type config struct {
+	MealPlanPath string `yaml:"meal_plan_path"`
+    RecipesPath  string `yaml:"recipes_path"`
 }

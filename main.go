@@ -15,6 +15,7 @@ type model struct {
 	recipe_index      int
 	incredient_index  int
 	meal_plan_content []section_content
+	cfg               config
 }
 
 func (m *model) CurrentRecipe() *recipe {
@@ -35,11 +36,13 @@ func (m model) Indices() (int, int) {
 }
 
 func initialModel() model {
-	recipes := buildIncredientData()
+	cfg := loadConfig()
+	recipes := buildIncredientData(cfg)
 	return model{
 		recipes:          recipes,
 		recipe_index:     0,
 		incredient_index: -1,
+		cfg:              cfg,
 	}
 }
 
