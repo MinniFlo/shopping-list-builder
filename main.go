@@ -5,43 +5,72 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"unicode/utf8"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 type model struct {
-	recipes           []recipe
-	recipe_index      int
-	incredient_index  int
-	meal_plan_content []section_content
-	cfg               config
+	collections      []list_entry_collection
+	collection_index int
+	entry_index      int
+	cfg              config
 }
 
-func (m *model) CurrentRecipe() *recipe {
-	return &m.recipes[m.recipe_index]
+func (m *model) list_entries_for_export() map[category]map[string]*list_entry {
+	export_structure := make(map[category]map[string]*list_entry)
+	for _, category := range categories {
+		export_structure[category] = make(map[string]*list_entry)
+	}
+
+	for _, collection := range m.collections {
+		for _, entry := range collection.entries {
+			if entry.staged == NOT_STAGED {
+				continue
+			}
+			if export_entry, ok := export_structure[entry.category][entry.name]; ok == false {
+				export_structure[entry.category][entry.name] =
+					&list_entry{
+						name:     entry.name,
+						unit:     entry.unit,
+						amount:   entry.amount * float32(collection.amount),
+						category: entry.category,
+						staged:   entry.staged,
+					}
+			} else {
+				// TODO: unify units
+				export_entry.amount += entry.amount * float32(collection.amount)
+			}
+		}
+	}
+
+	return export_structure
 }
 
-func (m *model) CurrentIncredient() (*incredient, error) {
-	incredience := m.CurrentRecipe().incredience
-	if m.incredient_index >= 0 && m.incredient_index < len(incredience) {
-		return &incredience[m.incredient_index], nil
+func (m *model) CurrentRecipe() *list_entry_collection {
+	return &m.collections[m.collection_index]
+}
+
+func (m *model) CurrentIncredient() (*list_entry, error) {
+	incredience := m.CurrentRecipe().entries
+	if m.entry_index >= 0 && m.entry_index < len(incredience) {
+		return &incredience[m.entry_index], nil
 	}
 
 	return nil, errors.New("No incredient selected")
 }
 
 func (m model) Indices() (int, int) {
-	return m.recipe_index, m.incredient_index
+	return m.collection_index, m.entry_index
 }
 
 func initialModel() model {
 	cfg := loadConfig()
 	recipes := buildIncredientData(cfg)
 	return model{
-		recipes:          recipes,
-		recipe_index:     0,
-		incredient_index: -1,
+		collections:      recipes,
+		collection_index: 0,
+		entry_index:      -1,
 		cfg:              cfg,
 	}
 }
@@ -61,14 +90,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "k", "up":
 			m.HandleUpMotion()
 		case "J", "tab", "ctrl+d":
-			if m.recipe_index < len(m.recipes)-1 {
-				m.recipe_index++
-				m.incredient_index = -1
+			if m.collection_index < len(m.collections)-1 {
+				m.collection_index++
+				m.entry_index = -1
 			}
 		case "K", "shift+tab", "ctrl+u":
-			if m.recipe_index > 0 {
-				m.recipe_index--
-				m.incredient_index = -1
+			if m.collection_index > 0 {
+				m.collection_index--
+				m.entry_index = -1
 			}
 		case "+":
 			m.CurrentRecipe().amount++
@@ -89,6 +118,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if inc, err := m.CurrentIncredient(); err == nil {
 				inc.staged.Prev()
 			}
+		case "enter":
+			renderShoppingListToFile(m.cfg.ShoppingListPath, m.list_entries_for_export())
 		}
 	}
 	return m, nil
@@ -97,33 +128,34 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m model) View() string {
 	ri, ii := m.Indices()
 
-	s := "Zutatenliste:\n\n"
+	var s strings.Builder
+	s.WriteString("Zutatenliste:\n\n")
 
-	if len(m.recipes) == 0 {
-		s += "Es befinden sich keine Rezepte auf dem Essensplan …\n\n"
+	if len(m.collections) == 0 {
+		s.WriteString("Es befinden sich keine Rezepte auf dem Essensplan …\n\n")
 	}
 
-	for i, recipe := range m.recipes {
+	for i, recipe := range m.collections {
 		cursor_sym := " "
 		if ri == i && ii == -1 {
 			cursor_sym = ">"
 		}
 
-		s += fmt.Sprintf(" %s  %d x %s\n", cursor_sym, recipe.amount, recipe.name)
+		fmt.Fprintf(&s, " %s  %d x %s\n", cursor_sym, recipe.amount, recipe.name)
 
 		if i == ri {
-			if len(recipe.incredience) == 0 {
-				s += "      Keine Zutaten gefunden …\n"
+			if len(recipe.entries) == 0 {
+				s.WriteString("      Keine Zutaten gefunden …\n")
 			}
 
-			for j, incredient := range recipe.incredience {
+			for j, incredient := range recipe.entries {
 				if ii == j {
 					cursor_sym = ">"
 				} else {
 					cursor_sym = " "
 				}
 				incredient_name := rightPadUnicodeConform(incredient.name, 30)
-				incredient_amount := strconv.FormatFloat(float64(incredient.amount*float32(recipe.amount)), 'f', -1, 64)
+				incredient_amount := formated_amount(incredient.amount * float32(recipe.amount))
 				category_symbol := incredient.category.Symbol()
 				staged_string := ""
 				switch incredient.staged {
@@ -133,23 +165,21 @@ func (m model) View() string {
 					staged_string = "[maby]"
 				}
 
-				s +=
-					fmt.Sprintf(
-						" %s    %s  %4s %-4s %s %s\n",
-						cursor_sym,
-						incredient_name,
-						incredient_amount,
-						incredient.unit,
-						category_symbol,
-						staged_string,
-					)
+				fmt.Fprintf(&s, " %s    %s  %4s %-4s %s %s\n",
+					cursor_sym,
+					incredient_name,
+					incredient_amount,
+					incredient.unit,
+					category_symbol,
+					staged_string,
+				)
 			}
-			s += "\n"
+			s.WriteString("\n")
 		}
 	}
-	s += "\n\nPress q to quit"
+	s.WriteString("\n\nPress q to quit")
 
-	return s
+	return s.String()
 }
 
 func main() {
@@ -165,11 +195,11 @@ func (m *model) HandleDownMotion() {
 	ri, ii := m.Indices()
 
 	switch {
-	case ii < len(m.recipes[ri].incredience)-1:
-		m.incredient_index++
-	case ii >= len(m.recipes[ri].incredience)-1 && ri < len(m.recipes)-1:
-		m.recipe_index++
-		m.incredient_index = -1
+	case ii < len(m.collections[ri].entries)-1:
+		m.entry_index++
+	case ii >= len(m.collections[ri].entries)-1 && ri < len(m.collections)-1:
+		m.collection_index++
+		m.entry_index = -1
 	}
 }
 
@@ -178,10 +208,10 @@ func (m *model) HandleUpMotion() {
 
 	switch {
 	case ii > -1:
-		m.incredient_index--
+		m.entry_index--
 	case ii <= -1 && ri > 0:
-		m.recipe_index--
-		m.incredient_index = len(m.recipes[m.recipe_index].incredience) - 1
+		m.collection_index--
+		m.entry_index = len(m.collections[m.collection_index].entries) - 1
 	}
 }
 

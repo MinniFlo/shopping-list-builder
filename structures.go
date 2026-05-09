@@ -14,8 +14,10 @@ const (
 	UNDEFINED
 )
 
+var categories = []category{VEGI, VEGTABLE, COOL, ASIA, FROZEN, PASTA, MILK, OTHER, UNDEFINED}
+
 func (ca category) String() string {
-	return [...]string{"Vegi-Regal", "Gemüse", "Kühl-Regal", "Asia-Regal", "TK-Regal", "Nudel-Regal", "Milch-Regal", "Gewürztes-Süßigkeiten-Regal", ""}[ca]
+	return [...]string{"Vegi-Regal", "Gemüse", "Kühl-Regal", "Asia-Regal", "TK-Regal", "Nudel-Regal", "Milch-Regal", "Gewürztes-Süßigkeiten-Regal", "Stuff"}[ca]
 }
 
 func (ca category) Symbol() string {
@@ -48,7 +50,7 @@ func (i *stage_state) Prev() {
 	}
 }
 
-type incredient struct {
+type list_entry struct {
 	name     string
 	amount   float32
 	unit     string
@@ -56,20 +58,14 @@ type incredient struct {
 	staged   stage_state
 }
 
-type recipe struct {
-	name        string
-	incredience []incredient
-	amount      int
-}
-
-// TODO: Rethink what should happen with this
-type section_content struct {
-	name         string
-	catecategory category
-	content      string
+type list_entry_collection struct {
+	name    string
+	entries []list_entry
+	amount  int
 }
 
 type config struct {
-	MealPlanPath string `yaml:"meal_plan_path"`
-    RecipesPath  string `yaml:"recipes_path"`
+	MealPlanPath     string `yaml:"meal_plan_path"`
+	RecipesPath      string `yaml:"recipes_path"`
+	ShoppingListPath string `yaml:"shopping_list_path"`
 }
