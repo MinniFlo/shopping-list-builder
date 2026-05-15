@@ -29,3 +29,7 @@ func (ca category) Symbol() string {
 func CategoryFromInt(i int) category {
 	return category(i - 1)
 }
+
+func (ca category) ToInt() int {
+	return int(ca) + 1
+}

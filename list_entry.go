@@ -15,7 +15,7 @@ type list_entry struct {
 	staged   stageing_state
 }
 
-func createListEntryFromString(s string) (list_entry, error) {
+func createListEntryFromString(s string, mapping map[string]int) (list_entry, error) {
 	re := regexp.MustCompile(`- \[.\] ([0-9]+[.,][0-9]+|[0-9]+)?\s*(?i)(g|kg|l|ml|el|tl)?\b\s*(.*)`)
 	incredient_match := re.FindStringSubmatch(s)
 
@@ -23,6 +23,7 @@ func createListEntryFromString(s string) (list_entry, error) {
 		name := "INCREDIENT_MISSING"
 		amount := 1.0
 		unit := ""
+		category := UNDEFINED
 
 		if value, err := strconv.ParseFloat(incredient_match[1], 32); err == nil {
 			amount = value
@@ -36,7 +37,11 @@ func createListEntryFromString(s string) (list_entry, error) {
 			unit = strings.TrimSpace(incredient_match[2])
 		}
 
-		return list_entry{name: name, amount: float32(amount), unit: unit, category: UNDEFINED, staged: STAGED}, nil
+		if category_int, ok := mapping[name]; ok {
+			category = CategoryFromInt(category_int)
+		}
+
+		return list_entry{name: name, amount: float32(amount), unit: unit, category: category, staged: STAGED}, nil
 	}
 
 	return list_entry{}, errors.New("Invalid incredient string!")

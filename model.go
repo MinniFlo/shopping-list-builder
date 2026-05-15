@@ -1,12 +1,15 @@
 package main
 
-import "errors"
+import (
+	"errors"
+)
 
 type model struct {
 	collections      []list_entry_collection
 	collection_index int
 	entry_index      int
-	cfg              path_config
+	cfg              config
+	mapping          map[string]int
 }
 
 func (m *model) ListEntriesForExport() map[category]map[string]*list_entry {
@@ -77,5 +80,13 @@ func (m *model) HandleUpMotion() {
 	case ii <= -1 && ri > 0:
 		m.collection_index--
 		m.entry_index = len(m.collections[m.collection_index].entries) - 1
+	}
+}
+
+func (m *model) UpdateMapping() {
+	for _, col := range m.collections {
+		for _, entry := range col.entries {
+			m.mapping[entry.name] = entry.category.ToInt()
+		}
 	}
 }

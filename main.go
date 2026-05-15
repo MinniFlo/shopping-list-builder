@@ -9,15 +9,16 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-
 func initialModel() model {
 	cfg := loadConfig()
-	recipes := BuildList(cfg)
+	mapping := loadMapping()
+	recipes := BuildList(cfg, mapping)
 	return model{
 		collections:      recipes,
 		collection_index: 0,
 		entry_index:      -1,
 		cfg:              cfg,
+		mapping:          mapping,
 	}
 }
 
@@ -66,6 +67,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "enter":
 			renderShoppingListToFile(m.cfg.ShoppingListPath, m.ListEntriesForExport())
+			m.UpdateMapping()
+			saveMapping(m.mapping)
 		}
 	}
 	return m, nil

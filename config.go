@@ -7,16 +7,18 @@ import (
 	"github.com/goccy/go-yaml"
 )
 
-type path_config struct {
+type config struct {
 	MealPlanPath     string `yaml:"meal_plan_path"`
 	RecipesPath      string `yaml:"recipes_path"`
 	ShoppingListPath string `yaml:"shopping_list_path"`
 }
 
-func loadConfig() path_config {
-	var cfg path_config
+const config_path = "shopping_list_builder/config.yml"
 
-	var local_config = "./.shopping_list_builder.yml"
+func loadConfig() config {
+	var cfg config
+
+	var local_config = fmt.Sprintf("./.%s", config_path)
 	local_data, err := os.ReadFile(local_config)
 	if err == nil {
 		if err := yaml.Unmarshal(local_data, &cfg); err == nil {
@@ -26,7 +28,7 @@ func loadConfig() path_config {
 		}
 	}
 
-	var user_config = "~/.config/shopping_list_builder.yml"
+	var user_config = fmt.Sprintf("~/.config/%s", config_path)
 	user_data, err := os.ReadFile(user_config)
 	if err == nil {
 		if err := yaml.Unmarshal(user_data, &cfg); err == nil {
