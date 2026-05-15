@@ -28,7 +28,8 @@ func loadConfig() config {
 		}
 	}
 
-	var user_config = fmt.Sprintf("~/.config/%s", config_path)
+	var home_path, _ = os.UserHomeDir()
+	var user_config = fmt.Sprintf("%s/.config/%s", home_path, config_path)
 	user_data, err := os.ReadFile(user_config)
 	if err == nil {
 		if err := yaml.Unmarshal(user_data, &cfg); err == nil {

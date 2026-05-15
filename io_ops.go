@@ -105,7 +105,7 @@ func renderShoppingListToFile(shopping_list_file_path string, category_map map[c
 	var list_string strings.Builder
 
 	for _, category := range GetCategories() {
-		fmt.Fprintf(&list_string, "## %s\n", category.String())
+		fmt.Fprintf(&list_string, "### %s\n", category.String())
 		for _, entry := range category_map[category] {
 			amount := strconv.FormatFloat(float64(entry.amount), 'f', -1, 64)
 			fmt.Fprintf(&list_string, "- [ ] %s ", amount)

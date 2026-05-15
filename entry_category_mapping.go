@@ -29,7 +29,8 @@ func loadMapping() map[string]int {
 		}
 	}
 
-	var user_config = fmt.Sprintf("~/.config/%s", mapping_path)
+	var home_path, _ = os.UserHomeDir()
+	var user_config = fmt.Sprintf("%s/.config/%s", home_path, mapping_path)
 	user_data, err := os.ReadFile(user_config)
 	if err == nil {
 		if err := yaml.Unmarshal(user_data, &mapping); err == nil {

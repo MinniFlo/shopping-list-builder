@@ -82,6 +82,7 @@ func (m model) View() string {
 
 	if len(m.collections) == 0 {
 		s.WriteString("Es befinden sich keine Rezepte auf dem Essensplan …\n\n")
+		fmt.Fprintf(&s, "Es befinden sich keine Rezepte auf dem Essensplan (%s) …\n\n", m.cfg.MealPlanPath)
 	}
 
 	for i, recipe := range m.collections {
