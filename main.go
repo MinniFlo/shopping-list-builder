@@ -1,7 +1,6 @@
 package main
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -10,63 +9,10 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-type model struct {
-	collections      []list_entry_collection
-	collection_index int
-	entry_index      int
-	cfg              config
-}
-
-func (m *model) list_entries_for_export() map[category]map[string]*list_entry {
-	export_structure := make(map[category]map[string]*list_entry)
-	for _, category := range categories {
-		export_structure[category] = make(map[string]*list_entry)
-	}
-
-	for _, collection := range m.collections {
-		for _, entry := range collection.entries {
-			if entry.staged == NOT_STAGED {
-				continue
-			}
-			if export_entry, ok := export_structure[entry.category][entry.name]; ok == false {
-				export_structure[entry.category][entry.name] =
-					&list_entry{
-						name:     entry.name,
-						unit:     entry.unit,
-						amount:   entry.amount * float32(collection.amount),
-						category: entry.category,
-						staged:   entry.staged,
-					}
-			} else {
-				// TODO: unify units
-				export_entry.amount += entry.amount * float32(collection.amount)
-			}
-		}
-	}
-
-	return export_structure
-}
-
-func (m *model) CurrentRecipe() *list_entry_collection {
-	return &m.collections[m.collection_index]
-}
-
-func (m *model) CurrentIncredient() (*list_entry, error) {
-	incredience := m.CurrentRecipe().entries
-	if m.entry_index >= 0 && m.entry_index < len(incredience) {
-		return &incredience[m.entry_index], nil
-	}
-
-	return nil, errors.New("No incredient selected")
-}
-
-func (m model) Indices() (int, int) {
-	return m.collection_index, m.entry_index
-}
 
 func initialModel() model {
 	cfg := loadConfig()
-	recipes := buildIncredientData(cfg)
+	recipes := BuildList(cfg)
 	return model{
 		collections:      recipes,
 		collection_index: 0,
@@ -108,7 +54,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "1", "2", "3", "4", "5", "6", "7", "8", "9":
 			number, _ := strconv.ParseInt(msg.String(), 10, 64)
 			if inc, err := m.CurrentIncredient(); err == nil {
-				inc.category = categoryFromInt(int(number))
+				inc.category = CategoryFromInt(int(number))
 			}
 		case "l", "right":
 			if inc, err := m.CurrentIncredient(); err == nil {
@@ -119,7 +65,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				inc.staged.Prev()
 			}
 		case "enter":
-			renderShoppingListToFile(m.cfg.ShoppingListPath, m.list_entries_for_export())
+			renderShoppingListToFile(m.cfg.ShoppingListPath, m.ListEntriesForExport())
 		}
 	}
 	return m, nil
@@ -189,49 +135,4 @@ func main() {
 		fmt.Printf("The last model state was: %v", m)
 		os.Exit(1)
 	}
-}
-
-func (m *model) HandleDownMotion() {
-	ri, ii := m.Indices()
-
-	switch {
-	case ii < len(m.collections[ri].entries)-1:
-		m.entry_index++
-	case ii >= len(m.collections[ri].entries)-1 && ri < len(m.collections)-1:
-		m.collection_index++
-		m.entry_index = -1
-	}
-}
-
-func (m *model) HandleUpMotion() {
-	ri, ii := m.Indices()
-
-	switch {
-	case ii > -1:
-		m.entry_index--
-	case ii <= -1 && ri > 0:
-		m.collection_index--
-		m.entry_index = len(m.collections[m.collection_index].entries) - 1
-	}
-}
-
-func rightPadUnicodeConform(s string, pad_value int) string {
-	pad_amt := pad_value - utf8.RuneCountInString(s)
-
-	switch {
-	case pad_amt == 0:
-		return s
-	case pad_amt > 0:
-		runes := []rune(s)
-		for range pad_amt {
-			runes = append(runes, rune(' '))
-		}
-		return string(runes)
-	case pad_amt < 0:
-		runes := []rune(s)
-		runes = append(runes[:pad_value-1], rune('…'))
-		return string(runes)
-	}
-
-	return s
 }

@@ -9,14 +9,22 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-
-	"github.com/goccy/go-yaml"
 )
 
-func buildIncredientData(cfg config) []list_entry_collection {
-	file, err := os.Open(cfg.MealPlanPath)
+func BuildList(cfg path_config) []list_entry_collection {
+	collections := extractRecipesFromMealPlan(cfg.MealPlanPath, cfg.RecipesPath)
+	current_list_items, err := extractCurrentListEntriesFromShoppingList(cfg.ShoppingListPath)
+	if err == nil {
+		collections = append(collections, current_list_items)
+	}
+
+	return collections
+}
+
+func extractRecipesFromMealPlan(meal_plan_path string, recipes_path string) []list_entry_collection {
+	file, err := os.Open(meal_plan_path)
 	if err != nil {
-		fmt.Printf("Failed to open the Essensplan.md at '%v' with error: %v\n\n", cfg.MealPlanPath, err)
+		fmt.Printf("Failed to open the Essensplan.md at '%v' with error: %v\n\n", meal_plan_path, err)
 		os.Exit(1)
 	}
 	defer file.Close()
@@ -40,15 +48,24 @@ func buildIncredientData(cfg config) []list_entry_collection {
 	}
 
 	for i, recipe := range recipes {
-		recipes[i].entries = extractIncredientsFromRecipe(recipe.name, cfg.RecipesPath)
+		path := fmt.Sprintf("%s%s.md", recipes_path, recipe.name)
+		recipes[i].entries = extractListEntriesFromFile(path)
 	}
 
 	return recipes
 }
 
-func extractIncredientsFromRecipe(recipe string, base_path string) []list_entry {
-	path := fmt.Sprintf("%s%s.md", base_path, recipe)
+func extractCurrentListEntriesFromShoppingList(shopping_list_path string) (list_entry_collection, error) {
+	entries := extractListEntriesFromFile(shopping_list_path)
 
+	if len(entries) == 0 {
+		return list_entry_collection{}, errors.New("No Items found on Soppinglist")
+	}
+
+	return list_entry_collection{name: "Zeugs von der Einkaufslist:", amount: 1, entries: entries}, nil
+}
+
+func extractListEntriesFromFile(path string) []list_entry {
 	file, err := os.Open(path)
 	if err != nil {
 		fmt.Printf("Failed to open the recipe with error: %v\n\n", err)
@@ -62,7 +79,7 @@ func extractIncredientsFromRecipe(recipe string, base_path string) []list_entry 
 	for scanner.Scan() {
 		row := scanner.Text()
 
-		if inc, err := createIncredientFromString(row); err == nil {
+		if inc, err := createListEntryFromString(row); err == nil {
 			incredience = append(incredience, inc)
 		}
 	}
@@ -74,63 +91,8 @@ func extractIncredientsFromRecipe(recipe string, base_path string) []list_entry 
 	return incredience
 }
 
-func createIncredientFromString(s string) (list_entry, error) {
-	re := regexp.MustCompile(`- \[.\] ([0-9]+[.,][0-9]+|[0-9]+)?\s*(?i)(g|kg|l|ml|el|tl)?\b\s*(.*)`)
-	incredient_match := re.FindStringSubmatch(s)
-
-	if incredient_match != nil {
-		name := "INCREDIENT_MISSING"
-		amount := 1.0
-		unit := ""
-
-		if value, err := strconv.ParseFloat(incredient_match[1], 32); err == nil {
-			amount = value
-		}
-
-		if len(incredient_match[3]) > 0 {
-			name = strings.TrimSpace(incredient_match[3])
-		}
-
-		if len(incredient_match[2]) > 0 {
-			unit = strings.TrimSpace(incredient_match[2])
-		}
-
-		return list_entry{name: name, amount: float32(amount), unit: unit, category: UNDEFINED, staged: STAGED}, nil
-	}
-
-	return list_entry{}, errors.New("Invalid incredient string!")
-}
-
-func loadConfig() config {
-	var cfg config
-
-	var local_config = "./.shopping_list_builder.yml"
-	local_data, err := os.ReadFile(local_config)
-	if err == nil {
-		if err := yaml.Unmarshal(local_data, &cfg); err == nil {
-			return cfg
-		} else {
-			fmt.Printf("Found but could not parse local config file: %v\n\n", err)
-		}
-	}
-
-	var user_config = "~/.config/shopping_list_builder.yml"
-	user_data, err := os.ReadFile(user_config)
-	if err == nil {
-		if err := yaml.Unmarshal(user_data, &cfg); err == nil {
-			return cfg
-		} else {
-			fmt.Printf("Found but could not parse user config file: %v\n\n", err)
-		}
-	}
-
-	fmt.Printf("Could not find parsable config files at '%v' or '%v'", local_config, user_config)
-	os.Exit(1)
-	return cfg
-}
-
 func renderShoppingListToFile(shopping_list_file_path string, category_map map[category]map[string]*list_entry) {
-	file, err := os.OpenFile(shopping_list_file_path, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	file, err := os.OpenFile(shopping_list_file_path, os.O_WRONLY|os.O_CREATE, 0644)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -139,7 +101,7 @@ func renderShoppingListToFile(shopping_list_file_path string, category_map map[c
 	var list_string strings.Builder
 	list_string.WriteString("\n")
 
-	for _, category := range categories {
+	for _, category := range GetCategories() {
 		fmt.Fprintf(&list_string, "## %s\n", category.String())
 		for _, entry := range category_map[category] {
 			amount := strconv.FormatFloat(float64(entry.amount), 'f', -1, 64)
