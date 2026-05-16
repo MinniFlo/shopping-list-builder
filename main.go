@@ -105,7 +105,7 @@ func (m model) View() string {
 					cursor_sym = " "
 				}
 				incredient_name := rightPadUnicodeConform(incredient.name, 30)
-				incredient_amount := formated_amount(incredient.amount * float32(recipe.amount))
+				incredient_amount := incredient.formated_amount(incredient.amount * float32(recipe.amount))
 				category_symbol := incredient.category.Symbol()
 				staged_string := ""
 				switch incredient.staged {

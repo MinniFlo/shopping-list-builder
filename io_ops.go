@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"regexp"
-	"strconv"
 	"strings"
 )
 
@@ -107,20 +106,30 @@ func renderShoppingListToFile(shopping_list_file_path string, category_map map[c
 	for _, category := range GetCategories() {
 		fmt.Fprintf(&list_string, "### %s\n", category.String())
 		for _, entry := range category_map[category] {
-			amount := strconv.FormatFloat(float64(entry.amount), 'f', -1, 64)
-			fmt.Fprintf(&list_string, "- [ ] %s ", amount)
-			if entry.unit != "" {
-				fmt.Fprintf(&list_string, "%s ", entry.unit)
-			}
-			list_string.WriteString(entry.name)
-			if entry.staged == MABY {
-				list_string.WriteString(" ?")
-			}
-			list_string.WriteString("\n")
+			list_string.WriteString(checkboxListEntryString(entry))
 		}
 	}
 
 	if _, err := file.WriteString(list_string.String()); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func checkboxListEntryString(entry *list_entry) string {
+	var entry_string strings.Builder
+
+	entry_string.WriteString("- [ ] ")
+	if amount := entry.formated_amount(entry.amount); amount != "" {
+		fmt.Fprintf(&entry_string, "%s ", amount)
+	}
+	if entry.unit != "" {
+		fmt.Fprintf(&entry_string, "%s ", entry.unit)
+	}
+	entry_string.WriteString(entry.name)
+	if entry.staged == MABY {
+		entry_string.WriteString(" ?")
+	}
+	entry_string.WriteString("\n")
+
+	return entry_string.String()
 }

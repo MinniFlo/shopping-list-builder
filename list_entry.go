@@ -15,6 +15,13 @@ type list_entry struct {
 	staged   stageing_state
 }
 
+func (e *list_entry) formated_amount(amount float32) string {
+	if (amount == 1.0 && e.unit == "") {
+		return ""
+	}
+	return strconv.FormatFloat(float64(amount), 'f', -1, 64)
+}
+
 func createListEntryFromString(s string, mapping map[string]int) (list_entry, error) {
 	re := regexp.MustCompile(`- \[.\] ([0-9]+[.,][0-9]+|[0-9]+)?\s*(?i)(g|kg|l|ml|el|tl)?\b\s*(.*)`)
 	incredient_match := re.FindStringSubmatch(s)
@@ -25,7 +32,7 @@ func createListEntryFromString(s string, mapping map[string]int) (list_entry, er
 		unit := ""
 		category := UNDEFINED
 
-		if value, err := strconv.ParseFloat(incredient_match[1], 32); err == nil {
+		if value, err := strconv.ParseFloat(strings.Replace(incredient_match[1], ",", ".", 1), 32); err == nil {
 			amount = value
 		}
 
