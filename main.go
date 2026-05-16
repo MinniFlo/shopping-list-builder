@@ -59,11 +59,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "l", "right":
 			if inc, err := m.CurrentIncredient(); err == nil {
-				inc.staged.Next()
+				inc.state.Next()
 			}
 		case "h", "left":
 			if inc, err := m.CurrentIncredient(); err == nil {
-				inc.staged.Prev()
+				inc.state.Prev()
 			}
 		case "enter":
 			renderShoppingListToFile(m.cfg.ShoppingListPath, m.ListEntriesForExport())
@@ -105,10 +105,10 @@ func (m model) View() string {
 					cursor_sym = " "
 				}
 				incredient_name := rightPadUnicodeConform(incredient.name, 30)
-				incredient_amount := incredient.formated_amount(incredient.amount * float32(recipe.amount))
+				incredient_amount := incredient.formated_amount(incredient.amount * float64(recipe.amount))
 				category_symbol := incredient.category.Symbol()
 				staged_string := ""
-				switch incredient.staged {
+				switch incredient.state {
 				case STAGED:
 					staged_string = "[staged]"
 				case MABY:

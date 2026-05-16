@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math"
 	"unicode/utf8"
 )
 
@@ -23,4 +24,8 @@ func rightPadUnicodeConform(s string, pad_value int) string {
 	}
 
 	return s
+}
+
+func RoundToThreeDigitsAfterPeriode(value float64) float64 {
+	return math.Round((value)*1000.0) / 1000.0
 }

@@ -21,3 +21,11 @@ func (i *stageing_state) Prev() {
 		*i -= 1
 	}
 }
+
+func MergeStagingState(s1, s2 stageing_state) stageing_state {
+	if s1 == s2 {
+		return s1
+	} else {
+		return MABY
+	}
+}

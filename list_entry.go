@@ -9,14 +9,14 @@ import (
 
 type list_entry struct {
 	name     string
-	amount   float32
-	unit     string
+	amount   float64
+	unit     unit
 	category category
-	staged   stageing_state
+	state   stageing_state
 }
 
-func (e *list_entry) formated_amount(amount float32) string {
-	if (amount == 1.0 && e.unit == "") {
+func (e *list_entry) formated_amount(amount float64) string {
+	if (amount == 1.0 && e.unit == None) {
 		return ""
 	}
 	return strconv.FormatFloat(float64(amount), 'f', -1, 64)
@@ -29,26 +29,31 @@ func createListEntryFromString(s string, mapping map[string]int) (list_entry, er
 	if incredient_match != nil {
 		name := "INCREDIENT_MISSING"
 		amount := 1.0
-		unit := ""
+		unit := None
 		category := UNDEFINED
 
-		if value, err := strconv.ParseFloat(strings.Replace(incredient_match[1], ",", ".", 1), 32); err == nil {
-			amount = value
+		amount_match := strings.Replace(incredient_match[1], ",", ".", 1)
+		unit_match := incredient_match[2]
+		name_match := incredient_match[3]
+
+		if value, err := strconv.ParseFloat(amount_match, 32); err == nil {
+			amount = RoundToThreeDigitsAfterPeriode(value)
 		}
 
-		if len(incredient_match[3]) > 0 {
+		if len(name_match) > 0 {
 			name = strings.TrimSpace(incredient_match[3])
 		}
 
-		if len(incredient_match[2]) > 0 {
-			unit = strings.TrimSpace(incredient_match[2])
+		if len(unit_match) > 0 {
+			unit_string := strings.TrimSpace(strings.ToLower(incredient_match[2]))
+			unit = UnitFromString(unit_string)
 		}
 
 		if category_int, ok := mapping[name]; ok {
 			category = CategoryFromInt(category_int)
 		}
 
-		return list_entry{name: name, amount: float32(amount), unit: unit, category: category, staged: STAGED}, nil
+		return list_entry{name: name, amount: amount, unit: unit, category: category, state: STAGED}, nil
 	}
 
 	return list_entry{}, errors.New("Invalid incredient string!")

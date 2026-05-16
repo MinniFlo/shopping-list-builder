@@ -90,7 +90,7 @@ func extractListEntriesFromFile(path string, mapping map[string]int) []list_entr
 	return incredience
 }
 
-func renderShoppingListToFile(shopping_list_file_path string, category_map map[category]map[string]*list_entry) {
+func renderShoppingListToFile(shopping_list_file_path string, category_map map[category]map[string][]*list_entry) {
 	if err := os.Truncate(shopping_list_file_path, 0); err != nil {
 		log.Fatal(err)
 	}
@@ -105,8 +105,10 @@ func renderShoppingListToFile(shopping_list_file_path string, category_map map[c
 
 	for _, category := range GetCategories() {
 		fmt.Fprintf(&list_string, "### %s\n", category.String())
-		for _, entry := range category_map[category] {
-			list_string.WriteString(checkboxListEntryString(entry))
+		for _, entry_list := range category_map[category] {
+			for _, entry := range entry_list {
+				list_string.WriteString(checkboxListEntryString(entry))
+			}
 		}
 	}
 
@@ -122,11 +124,11 @@ func checkboxListEntryString(entry *list_entry) string {
 	if amount := entry.formated_amount(entry.amount); amount != "" {
 		fmt.Fprintf(&entry_string, "%s ", amount)
 	}
-	if entry.unit != "" {
+	if entry.unit != None {
 		fmt.Fprintf(&entry_string, "%s ", entry.unit)
 	}
 	entry_string.WriteString(entry.name)
-	if entry.staged == MABY {
+	if entry.state == MABY {
 		entry_string.WriteString(" ?")
 	}
 	entry_string.WriteString("\n")
