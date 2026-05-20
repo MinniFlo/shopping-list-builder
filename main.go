@@ -6,8 +6,17 @@ import (
 	"strconv"
 	"strings"
 
-	tea "github.com/charmbracelet/bubbletea"
+	tea	"charm.land/bubbletea/v2"
 )
+
+func main() {
+	p := tea.NewProgram(initialModel())
+	if m, err := p.Run(); err != nil {
+		fmt.Printf("There has been an error: %v", err)
+		fmt.Printf("The last model state was: %v", m)
+		os.Exit(1)
+	}
+}
 
 func initialModel() model {
 	cfg := loadConfig()
@@ -74,7 +83,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-func (m model) View() string {
+func (m model) View() tea.View {
 	ri, ii := m.Indices()
 
 	var s strings.Builder
@@ -129,14 +138,7 @@ func (m model) View() string {
 	}
 	s.WriteString("\n\nPress q to quit")
 
-	return s.String()
-}
-
-func main() {
-	p := tea.NewProgram(initialModel())
-	if m, err := p.Run(); err != nil {
-		fmt.Printf("There has been an error: %v", err)
-		fmt.Printf("The last model state was: %v", m)
-		os.Exit(1)
-	}
+	v := tea.NewView(s.String())
+	v.AltScreen = true
+	return v
 }
