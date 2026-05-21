@@ -6,7 +6,8 @@ import (
 	"strconv"
 	"strings"
 
-	tea	"charm.land/bubbletea/v2"
+	"charm.land/bubbles/v2/key"
+	tea "charm.land/bubbletea/v2"
 )
 
 func main() {
@@ -18,68 +19,58 @@ func main() {
 	}
 }
 
-func initialModel() model {
-	cfg := loadConfig()
-	mapping := loadMapping()
-	recipes := BuildList(cfg, mapping)
-	return model{
-		collections:      recipes,
-		collection_index: 0,
-		entry_index:      -1,
-		cfg:              cfg,
-		mapping:          mapping,
-	}
-}
-
 func (m model) Init() tea.Cmd {
 	return nil
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q":
+	case tea.KeyPressMsg:
+		switch {
+		case key.Matches(msg, default_key_map.Quit):
 			return m, tea.Quit
-		case "j", "down":
+		case key.Matches(msg, default_key_map.Down):
 			m.HandleDownMotion()
-		case "k", "up":
+		case key.Matches(msg, default_key_map.Up):
 			m.HandleUpMotion()
-		case "J", "tab", "ctrl+d":
+		case key.Matches(msg, default_key_map.SectionDown):
 			if m.collection_index < len(m.collections)-1 {
 				m.collection_index++
 				m.entry_index = -1
 			}
-		case "K", "shift+tab", "ctrl+u":
+		case key.Matches(msg, default_key_map.SectionUp):
 			if m.collection_index > 0 {
 				m.collection_index--
 				m.entry_index = -1
 			}
-		case "+":
+		case key.Matches(msg, default_key_map.Increment):
 			m.CurrentRecipe().amount++
-		case "-":
+		case key.Matches(msg, default_key_map.Decrement):
 			if m.CurrentRecipe().amount > 1 {
 				m.CurrentRecipe().amount--
 			}
-		case "1", "2", "3", "4", "5", "6", "7", "8", "9":
+		case key.Matches(msg, default_key_map.SetCategory):
 			number, _ := strconv.ParseInt(msg.String(), 10, 64)
 			if inc, err := m.CurrentIncredient(); err == nil {
 				inc.category = CategoryFromInt(int(number))
 			}
-		case "l", "right":
+		case key.Matches(msg, default_key_map.Right):
 			if inc, err := m.CurrentIncredient(); err == nil {
 				inc.state.Next()
 			}
-		case "h", "left":
+		case key.Matches(msg, default_key_map.Left):
 			if inc, err := m.CurrentIncredient(); err == nil {
 				inc.state.Prev()
 			}
-		case "enter":
+		case key.Matches(msg, default_key_map.Confirm):
 			renderShoppingListToFile(m.cfg.ShoppingListPath, m.ListEntriesForExport())
 			m.UpdateMapping()
 			saveMapping(m.mapping)
+		case key.Matches(msg, default_key_map.Help):
+			m.help.ShowAll = !m.help.ShowAll
 		}
 	}
+
 	return m, nil
 }
 
@@ -136,7 +127,7 @@ func (m model) View() tea.View {
 			s.WriteString("\n")
 		}
 	}
-	s.WriteString("\n\nPress q to quit")
+	fmt.Fprintf(&s, "\n\n%s", m.help.View(default_key_map))
 
 	v := tea.NewView(s.String())
 	v.AltScreen = true

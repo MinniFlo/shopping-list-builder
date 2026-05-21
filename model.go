@@ -2,6 +2,8 @@ package main
 
 import (
 	"errors"
+
+	"charm.land/bubbles/v2/help"
 )
 
 type model struct {
@@ -10,6 +12,23 @@ type model struct {
 	entry_index      int
 	cfg              config
 	mapping          map[string]int
+	help             help.Model
+}
+
+func initialModel() model {
+	cfg := loadConfig()
+	mapping := loadMapping()
+	recipes := BuildList(cfg, mapping)
+	help := help.New()
+
+	return model{
+		collections:      recipes,
+		collection_index: 0,
+		entry_index:      -1,
+		cfg:              cfg,
+		mapping:          mapping,
+		help:             help,
+	}
 }
 
 func (m *model) ListEntriesForExport() map[category]map[string][]*list_entry {
