@@ -13,6 +13,7 @@ type model struct {
 	cfg              config
 	mapping          map[string]int
 	help             help.Model
+	width, height    int
 }
 
 func initialModel() model {
@@ -28,6 +29,8 @@ func initialModel() model {
 		cfg:              cfg,
 		mapping:          mapping,
 		help:             help,
+		width:            0,
+		height:           0,
 	}
 }
 
