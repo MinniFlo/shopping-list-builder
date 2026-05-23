@@ -8,6 +8,7 @@ import (
 
 	"charm.land/bubbles/v2/key"
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 func main() {
@@ -25,6 +26,9 @@ func (m model) Init() tea.Cmd {
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.width = msg.Width
+		m.height = msg.Height
 	case tea.KeyPressMsg:
 		switch {
 		case key.Matches(msg, default_key_map.Quit):
@@ -127,7 +131,9 @@ func (m model) View() tea.View {
 			s.WriteString("\n")
 		}
 	}
-	fmt.Fprintf(&s, "\n\n%s", m.help.View(default_key_map))
+	help_view := lipgloss.NewStyle().Height(m.height).AlignVertical(lipgloss.Bottom).Render(m.help.View(default_key_map))
+	_break_amount := strings.Count(help_view, "\n")
+	fmt.Fprintf(&s, "%s%s", help_view, _break_amount)
 
 	v := tea.NewView(s.String())
 	v.AltScreen = true
