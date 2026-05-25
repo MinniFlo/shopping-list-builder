@@ -21,7 +21,7 @@ func main() {
 }
 
 func (m model) Init() tea.Cmd {
-	return nil
+	return tea.Batch(tea.RequestBackgroundColor, tea.RequestForegroundColor)
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -29,6 +29,16 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
+	case tea.BackgroundColorMsg:
+		m.bg_color = msg.String()
+		if m.fg_color != "" {
+			m.style = BuildStyle(m.bg_color, m.fg_color)
+		}
+	case tea.ForegroundColorMsg:
+		m.fg_color = msg.String()
+		if m.bg_color != "" {
+			m.style = BuildStyle(m.bg_color, m.fg_color)
+		}
 	case tea.KeyPressMsg:
 		switch {
 		case key.Matches(msg, default_key_map.Quit):
@@ -79,63 +89,52 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() tea.View {
-	ri, ii := m.Indices()
+	var doc strings.Builder
 
-	var s strings.Builder
-	s.WriteString("Zutatenliste:\n\n")
+	if m.bg_color == "" || m.fg_color == "" {
+		doc.WriteString("Loading ...")
+		return tea.NewView(doc.String())
+	}
+
+	doc.WriteString(m.style.title.Render("SHOPPING LIST BUILDER"))
+	doc.WriteString("\n\n")
 
 	if len(m.collections) == 0 {
-		s.WriteString("Es befinden sich keine Rezepte auf dem Essensplan …\n\n")
-		fmt.Fprintf(&s, "Es befinden sich keine Rezepte auf dem Essensplan (%s) …\n\n", m.cfg.MealPlanPath)
+		doc.WriteString("Es befinden sich keine Rezepte auf dem Essensplan …\n\n")
+		fmt.Fprintf(&doc, "Es befinden sich keine Rezepte auf dem Essensplan (%s) …\n\n", m.cfg.MealPlanPath)
 	}
 
-	for i, recipe := range m.collections {
-		cursor_sym := " "
-		if ri == i && ii == -1 {
-			cursor_sym = ">"
-		}
+	ri, ii := m.Indices()
 
-		fmt.Fprintf(&s, " %s  %d x %s\n", cursor_sym, recipe.amount, recipe.name)
+	for i, collection := range m.collections {
+		header_is_selected := ri == i && ii == -1
+		header := collection.buildHeader(header_is_selected, m.style)
+		doc.WriteString(header)
+		doc.WriteString("\n")
 
 		if i == ri {
-			if len(recipe.entries) == 0 {
-				s.WriteString("      Keine Zutaten gefunden …\n")
+			if len(collection.entries) == 0 {
+				doc.WriteString("Keine Zutaten gefunden …\n")
 			}
 
-			for j, incredient := range recipe.entries {
-				if ii == j {
-					cursor_sym = ">"
-				} else {
-					cursor_sym = " "
-				}
-				incredient_name := rightPadUnicodeConform(incredient.name, 30)
-				incredient_amount := incredient.formated_amount(incredient.amount * float64(recipe.amount))
-				category_symbol := incredient.category.Symbol()
-				staged_string := ""
-				switch incredient.state {
-				case STAGED:
-					staged_string = "[staged]"
-				case MABY:
-					staged_string = "[maby]"
-				}
-
-				fmt.Fprintf(&s, " %s    %s  %4s %-4s %s %s\n",
-					cursor_sym,
-					incredient_name,
-					incredient_amount,
-					incredient.unit,
-					category_symbol,
-					staged_string,
-				)
-			}
-			s.WriteString("\n")
+			table := collection.buildTable(ii, m.style)
+			doc.WriteString(m.style.table.Render(table))
+			doc.WriteString("\n")
 		}
 	}
-	help_view := lipgloss.NewStyle().Height(m.height).AlignVertical(lipgloss.Bottom).Render(m.help.View(default_key_map))
-	_break_amount := strings.Count(help_view, "\n")
-	fmt.Fprintf(&s, "%s%s", help_view, _break_amount)
 
-	v := tea.NewView(s.String())
+	help_view := m.style.docStyle.Render(m.help.View(default_key_map))
+	document := m.style.docStyle.Render(doc.String())
+
+	help_height := strings.Count(help_view, "\n")
+	layers := []*lipgloss.Layer{
+		lipgloss.NewLayer(document),
+		lipgloss.NewLayer(help_view).Y(m.height - (help_height)),
+	}
+
+	comp := lipgloss.NewCompositor(layers...)
+
+	v := tea.NewView(lipgloss.Sprintln(comp.Render()))
 	v.AltScreen = true
 	return v
 }
