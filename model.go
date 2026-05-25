@@ -7,13 +7,15 @@ import (
 )
 
 type model struct {
-	collections      []list_entry_collection
-	collection_index int
-	entry_index      int
-	cfg              config
-	mapping          map[string]int
-	help             help.Model
-	width, height    int
+	collections        []list_entry_collection
+	collection_index   int
+	entry_index        int
+	cfg                config
+	mapping            map[string]int
+	help               help.Model
+	width, height      int
+	bg_color, fg_color string
+	style              Style
 }
 
 func initialModel() model {
@@ -31,6 +33,8 @@ func initialModel() model {
 		help:             help,
 		width:            0,
 		height:           0,
+		bg_color:         "",
+		fg_color:         "",
 	}
 }
 

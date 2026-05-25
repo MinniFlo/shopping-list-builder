@@ -29,3 +29,7 @@ func MergeStagingState(s1, s2 stageing_state) stageing_state {
 		return MABY
 	}
 }
+
+func (s stageing_state) String() string {
+	return [...]string{" ", "", " "}[s]
+}
