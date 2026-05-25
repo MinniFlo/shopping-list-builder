@@ -12,14 +12,20 @@ type list_entry struct {
 	amount   float64
 	unit     unit
 	category category
-	state   stageing_state
+	state    stageing_state
 }
 
 func (e *list_entry) formated_amount(amount float64) string {
-	if (amount == 1.0 && e.unit == None) {
+	if amount == 0.0 {
 		return ""
 	}
-	return strconv.FormatFloat(float64(amount), 'f', -1, 64)
+
+	return strconv.FormatFloat(
+		RoundToThreeDigitsAfterPeriode(amount),
+		'f',
+		-1,
+		64,
+	)
 }
 
 func createListEntryFromString(s string, mapping map[string]int) (list_entry, error) {
@@ -28,7 +34,7 @@ func createListEntryFromString(s string, mapping map[string]int) (list_entry, er
 
 	if incredient_match != nil {
 		name := "INCREDIENT_MISSING"
-		amount := 1.0
+		amount := 0.0
 		unit := None
 		category := UNDEFINED
 
