@@ -6,15 +6,17 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-type Style struct {
-	black                             color.Color
-	light_black                       color.Color
-	white                             color.Color
-	light_white                       color.Color
-	primary                           color.Color
-	highlight                         color.Color
-	docStyle                          lipgloss.Style
-	title                             lipgloss.Style
+type Colors struct {
+	black       color.Color
+	light_black color.Color
+	white       color.Color
+	light_white color.Color
+	primary     color.Color
+	highlight   color.Color
+}
+
+type ListStyle struct {
+	colors                            Colors
 	table                             lipgloss.Style
 	collection_header                 lipgloss.Style
 	collection_header_selected        lipgloss.Style
@@ -29,6 +31,22 @@ type Style struct {
 	unit_col                          lipgloss.Style
 }
 
+type ExportStyle struct {
+	colors         Colors
+	list           lipgloss.Style
+	heading        lipgloss.Style
+	entry          lipgloss.Style
+	selected_entry lipgloss.Style
+}
+
+type Style struct {
+	colors      Colors
+	docStyle    lipgloss.Style
+	title       lipgloss.Style
+	listStyle   ListStyle
+	exportStyle ExportStyle
+}
+
 func BuildStyle(bg_color, fg_color string) Style {
 
 	black := lipgloss.Color(bg_color)
@@ -36,35 +54,26 @@ func BuildStyle(bg_color, fg_color string) Style {
 	white := lipgloss.Color(fg_color)
 	light_white := lipgloss.Darken(white, 0.15)
 	primary := lipgloss.Color("#ce82c1")
-	highlight := lipgloss.Color("#8c8191")
+	highlight := lipgloss.Color("#b2a7b7")
 
-	return Style{
-		// Colors
+	colors := Colors{
 		black:       black,
 		light_black: light_black,
-
 		white:       white,
 		light_white: light_white,
+		primary:     primary,
+		highlight:   highlight,
+	}
 
-		primary:   primary,
-		highlight: highlight,
+	listStyle := ListStyle{
+		colors: colors,
 
-		docStyle: lipgloss.NewStyle().Padding(1, 2, 1, 2),
-
-		title: lipgloss.NewStyle().
-			Padding(0, 1).
-			Bold(true).
-			Italic(true).
-			Foreground(black).
-			Background(primary),
-
-		// List/Table,
-		table: lipgloss.NewStyle().MarginLeft(1),
+		table: lipgloss.NewStyle().Margin(0, 1, 0, 1),
 
 		collection_header:                 lipgloss.NewStyle().Padding(0, 1, 0, 1).Bold(true),
 		collection_header_selected:        lipgloss.NewStyle().Padding(0, 1, 0, 1).Bold(true).Foreground(black).Background(highlight),
-		collection_header_amount:          lipgloss.NewStyle().Bold(true).Foreground(light_white).PaddingLeft(1),
-		collection_header_amount_selected: lipgloss.NewStyle().Bold(true).Foreground(light_black).Background(highlight).PaddingLeft(1),
+		collection_header_amount:          lipgloss.NewStyle().Bold(true).Foreground(light_white).PaddingRight(1),
+		collection_header_amount_selected: lipgloss.NewStyle().Bold(true).Foreground(light_black).Background(highlight).PaddingRight(1),
 
 		entry:          lipgloss.NewStyle().Foreground(light_white),
 		entry_odd:      lipgloss.NewStyle().Foreground(light_white).Background(light_black),
@@ -73,6 +82,29 @@ func BuildStyle(bg_color, fg_color string) Style {
 		col:        lipgloss.NewStyle().Padding(0, 1, 0, 1),
 		name_col:   lipgloss.NewStyle().Width(35).Padding(0, 1, 0, 1),
 		amount_col: lipgloss.NewStyle().Width(9).AlignHorizontal(lipgloss.Right).Padding(0, 1, 0, 1),
-		unit_col:   lipgloss.NewStyle().Padding(0, 1, 0, 0),
+		unit_col:   lipgloss.NewStyle().Width(5).Padding(0, 1, 0, 0),
+	}
+
+	exportStyle := ExportStyle{
+		colors:         colors,
+		list:           lipgloss.NewStyle().BorderStyle(lipgloss.NormalBorder()).BorderForegroundBlend(primary, black, black, black, primary).BorderForegroundBlendOffset(10).BorderTop(true).BorderLeft(true),
+		heading:        lipgloss.NewStyle().Padding(0, 1).Bold(true).Foreground(highlight).Width(80),
+		entry:          lipgloss.NewStyle().Padding(0, 1).Foreground(light_white).Width(80),
+		selected_entry: lipgloss.NewStyle().Padding(0, 1).Foreground(light_white).Background(light_black).Width(80),
+	}
+
+	return Style{
+		colors: colors,
+
+		docStyle: lipgloss.NewStyle().Padding(1, 2, 1, 2),
+		title: lipgloss.NewStyle().
+			Padding(0, 1).
+			Bold(true).
+			Italic(true).
+			Foreground(black).
+			Background(primary),
+
+		listStyle:   listStyle,
+		exportStyle: exportStyle,
 	}
 }
