@@ -11,7 +11,7 @@ type list_entry_collection struct {
 	amount  int
 }
 
-func (collection *list_entry_collection) buildHeader(selected bool, style Style) string {
+func (collection *list_entry_collection) buildHeader(selected bool, style ListStyle) string {
 	var name_style lipgloss.Style
 	var amount_style lipgloss.Style
 
@@ -27,12 +27,12 @@ func (collection *list_entry_collection) buildHeader(selected bool, style Style)
 	return lipgloss.Sprintf("%s%s", name_style.Render(collection.name), amount_style.Render(amount))
 }
 
-func (collection *list_entry_collection) asTableRows(style Style) [][]string {
+func (collection *list_entry_collection) asTableRows(style ListStyle) [][]string {
 	var tableData [][]string
 
 	for _, entry := range collection.entries {
 		name := style.name_col.Render(entry.name)
-		amount := style.amount_col.Render(entry.formated_amount(entry.amount * float64(collection.amount)))
+		amount := style.amount_col.Render(formatedAmount(entry.amount * float64(collection.amount)))
 		unit := style.unit_col.Render(entry.unit.String())
 		category := style.col.Render(entry.category.Symbol())
 		state := style.col.Render(entry.state.String())
@@ -46,11 +46,11 @@ func (collection *list_entry_collection) asTableRows(style Style) [][]string {
 	return tableData
 }
 
-func (collection *list_entry_collection) buildTable(selected_row_index int, style Style) string {
+func (collection *list_entry_collection) buildTable(selected_row_index int, style ListStyle) string {
 	rows := collection.asTableRows(style)
 
 	t := table.New().
-		BaseStyle(lipgloss.NewStyle().Foreground(style.light_white).Background(style.black)).
+		BaseStyle(lipgloss.NewStyle().Foreground(style.colors.light_white).Background(style.colors.black)).
 		BorderTop(false).
 		BorderBottom(false).
 		BorderColumn(false).

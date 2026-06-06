@@ -13,7 +13,7 @@ type list_model struct {
 	collections      []list_entry_collection
 	collection_index int
 	entry_index      int
-	style            Style
+	style            ListStyle
 }
 
 func initialListModel(collections []list_entry_collection) list_model {
@@ -25,7 +25,7 @@ func initialListModel(collections []list_entry_collection) list_model {
 }
 
 func (m list_model) Init() tea.Cmd {
-	return tea.Batch(tea.RequestBackgroundColor, tea.RequestForegroundColor)
+	return nil
 }
 
 func (m list_model) Update(msg tea.Msg) (list_model, tea.Cmd) {
@@ -96,7 +96,6 @@ func (m list_model) View() tea.View {
 	v := tea.NewView(list.String())
 	return v
 }
-
 
 func (m *list_model) CurrentRecipe() *list_entry_collection {
 	return &m.collections[m.collection_index]

@@ -8,24 +8,12 @@ import (
 )
 
 type list_entry struct {
+	id       int
 	name     string
 	amount   float64
 	unit     unit
 	category category
 	state    stageing_state
-}
-
-func (e *list_entry) formated_amount(amount float64) string {
-	if amount == 0.0 {
-		return ""
-	}
-
-	return strconv.FormatFloat(
-		RoundToThreeDigitsAfterPeriode(amount),
-		'f',
-		-1,
-		64,
-	)
 }
 
 func createListEntryFromString(s string, mapping map[string]int) (list_entry, error) {
@@ -63,4 +51,8 @@ func createListEntryFromString(s string, mapping map[string]int) (list_entry, er
 	}
 
 	return list_entry{}, errors.New("Invalid incredient string!")
+}
+
+func (m *list_model) GetCurrentPositionID() int {
+	return idFromIndices(m.collection_index, m.entry_index)
 }

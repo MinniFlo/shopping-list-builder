@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"regexp"
-	"strings"
 )
 
 func BuildList(cfg config, mapping map[string]int) []list_entry_collection {
@@ -15,6 +14,13 @@ func BuildList(cfg config, mapping map[string]int) []list_entry_collection {
 	current_list_items, err := extractCurrentListEntriesFromShoppingList(cfg.ShoppingListPath, mapping)
 	if err == nil {
 		collections = append(collections, current_list_items)
+	}
+
+	for i, collection := range collections {
+		for j, entry := range collection.entries {
+			entry.id = idFromIndices(i, j)
+			collection.entries[j] = entry
+		}
 	}
 
 	return collections
@@ -90,7 +96,7 @@ func extractListEntriesFromFile(path string, mapping map[string]int) []list_entr
 	return incredience
 }
 
-func renderShoppingListToFile(shopping_list_file_path string, category_map map[category]map[string][]*list_entry) {
+func renderShoppingListToFile(shopping_list_file_path string, list_string string) {
 	if err := os.Truncate(shopping_list_file_path, 0); err != nil {
 		log.Fatal(err)
 	}
@@ -101,37 +107,7 @@ func renderShoppingListToFile(shopping_list_file_path string, category_map map[c
 	}
 	defer file.Close()
 
-	var list_string strings.Builder
-
-	for _, category := range GetCategories() {
-		fmt.Fprintf(&list_string, "### %s\n", category.String())
-		for _, entry_list := range category_map[category] {
-			for _, entry := range entry_list {
-				list_string.WriteString(checkboxListEntryString(entry))
-			}
-		}
-	}
-
-	if _, err := file.WriteString(list_string.String()); err != nil {
+	if _, err := file.WriteString(list_string); err != nil {
 		log.Fatal(err)
 	}
-}
-
-func checkboxListEntryString(entry *list_entry) string {
-	var entry_string strings.Builder
-
-	entry_string.WriteString("- [ ] ")
-	if amount := entry.formated_amount(entry.amount); amount != "" {
-		fmt.Fprintf(&entry_string, "%s ", amount)
-	}
-	if entry.unit != None {
-		fmt.Fprintf(&entry_string, "%s ", entry.unit)
-	}
-	entry_string.WriteString(entry.name)
-	if entry.state == MABY {
-		entry_string.WriteString(" ?")
-	}
-	entry_string.WriteString("\n")
-
-	return entry_string.String()
 }

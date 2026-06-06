@@ -2,6 +2,7 @@ package main
 
 import (
 	"math"
+	"strconv"
 	"unicode/utf8"
 )
 
@@ -28,4 +29,21 @@ func rightPadUnicodeConform(s string, pad_value int) string {
 
 func RoundToThreeDigitsAfterPeriode(value float64) float64 {
 	return math.Round((value)*1000.0) / 1000.0
+}
+
+func formatedAmount(amount float64) string {
+	if amount == 0.0 {
+		return ""
+	}
+
+	return strconv.FormatFloat(
+		RoundToThreeDigitsAfterPeriode(amount),
+		'f',
+		-1,
+		64,
+	)
+}
+
+func idFromIndices(i, j int) int {
+	return i*100 + j
 }
