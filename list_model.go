@@ -47,22 +47,24 @@ func (m list_model) Update(msg tea.Msg) (list_model, tea.Cmd) {
 				m.entry_index = -1
 			}
 		case key.Matches(msg, default_key_map.Increment):
-			m.CurrentRecipe().amount++
+			m.currentCollection().amount++
 		case key.Matches(msg, default_key_map.Decrement):
-			if m.CurrentRecipe().amount > 1 {
-				m.CurrentRecipe().amount--
+			if m.currentCollection().amount > 1 {
+				m.currentCollection().amount--
 			}
 		case key.Matches(msg, default_key_map.SetCategory):
 			number, _ := strconv.ParseInt(msg.String(), 10, 64)
-			if inc, err := m.CurrentIncredient(); err == nil {
-				inc.category = CategoryFromInt(int(number))
+			if entry, err := m.currentEntry(); err == nil {
+				entry.category = CategoryFromInt(int(number))
+			} else {
+				m.batchSetCategory(int(number))
 			}
 		case key.Matches(msg, default_key_map.Right):
-			if inc, err := m.CurrentIncredient(); err == nil {
+			if inc, err := m.currentEntry(); err == nil {
 				inc.state.Next()
 			}
 		case key.Matches(msg, default_key_map.Left):
-			if inc, err := m.CurrentIncredient(); err == nil {
+			if inc, err := m.currentEntry(); err == nil {
 				inc.state.Prev()
 			}
 		}
@@ -97,17 +99,17 @@ func (m list_model) View() tea.View {
 	return v
 }
 
-func (m *list_model) CurrentRecipe() *list_entry_collection {
+func (m *list_model) currentCollection() *list_entry_collection {
 	return &m.collections[m.collection_index]
 }
 
-func (m *list_model) CurrentIncredient() (*list_entry, error) {
-	incredience := m.CurrentRecipe().entries
-	if m.entry_index >= 0 && m.entry_index < len(incredience) {
-		return &incredience[m.entry_index], nil
+func (m *list_model) currentEntry() (*list_entry, error) {
+	entry := m.currentCollection().entries
+	if m.entry_index >= 0 && m.entry_index < len(entry) {
+		return &entry[m.entry_index], nil
 	}
 
-	return nil, errors.New("No incredient selected")
+	return nil, errors.New("No entry selected")
 }
 
 func (m list_model) Indices() (int, int) {
@@ -135,5 +137,11 @@ func (m *list_model) HandleUpMotion() {
 	case ii <= -1 && ri > 0:
 		m.collection_index--
 		m.entry_index = len(m.collections[m.collection_index].entries) - 1
+	}
+}
+func (m *list_model) batchSetCategory(category_number int) {
+	for _, e := range m.currentCollection().entries {
+		// TODO: use reference
+		e.category = CategoryFromInt(category_number)
 	}
 }

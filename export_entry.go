@@ -6,6 +6,7 @@ type export_entry struct {
 	unit           unit
 	state          stageing_state
 	list_entry_ids []int
+	selected       bool
 }
 
 type ByListEntryIds []*export_entry

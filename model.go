@@ -26,7 +26,7 @@ func initialModel() model {
 	collections := BuildList(cfg, mapping)
 	help := help.New()
 	list := initialListModel(collections)
-	export := initialExportModel(collections)
+	export := initialExportModel(collections, list.collection_index, list.entry_index)
 
 	return model{
 		cfg:      cfg,
@@ -74,7 +74,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			list, _ := m.list.Update(msg)
 			m.list = list
 
-			export, _ := m.export.Update(msg, m.list.collections)
+			export, _ := m.export.Update(msg, m.list.collections, m.list.collection_index, m.list.entry_index)
 			m.export = export
 		}
 	}

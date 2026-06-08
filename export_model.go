@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"slices"
 	"sort"
 	"strings"
 
@@ -15,9 +14,9 @@ type export_model struct {
 	style     ExportStyle
 }
 
-func initialExportModel(collections []list_entry_collection) export_model {
+func initialExportModel(collections []list_entry_collection, selected_coll_idx, selected_entry_idx int) export_model {
 
-	structure := ListEntriesForExport(collections)
+	structure := BuildStructureForExport(collections, selected_coll_idx, selected_entry_idx)
 
 	return export_model{structure: structure}
 }
@@ -26,10 +25,10 @@ func (m export_model) Init() tea.Cmd {
 	return nil
 }
 
-func (m export_model) Update(msg tea.Msg, collections []list_entry_collection) (export_model, tea.Cmd) {
+func (m export_model) Update(msg tea.Msg, collections []list_entry_collection, selected_coll_idx, selected_entry_idx int) (export_model, tea.Cmd) {
 	switch msg.(type) {
-		case tea.KeyPressMsg:
-			m.structure = ListEntriesForExport(collections)
+	case tea.KeyPressMsg:
+		m.structure = BuildStructureForExport(collections, selected_coll_idx, selected_entry_idx)
 	}
 
 	return m, nil
@@ -37,7 +36,6 @@ func (m export_model) Update(msg tea.Msg, collections []list_entry_collection) (
 
 func (m export_model) View(selected_entry_id int, height int) tea.View {
 	var preview strings.Builder
-
 
 	list := m.buildExportString(true, selected_entry_id)
 	list_height := strings.Count(list, "\n")
@@ -54,16 +52,21 @@ func (m export_model) View(selected_entry_id int, height int) tea.View {
 	return v
 }
 
-func ListEntriesForExport(collections []list_entry_collection) map[category][]*export_entry {
+func BuildStructureForExport(collections []list_entry_collection, selected_coll_idx, selected_entry_idx int) map[category][]*export_entry {
 	work_structure := make(map[category]map[string][]*export_entry)
 	for _, category := range GetCategories() {
 		work_structure[category] = make(map[string][]*export_entry)
 	}
 
-	for _, collection := range collections {
-		for _, entry := range collection.entries {
+	for i, collection := range collections {
+		for j, entry := range collection.entries {
 			if entry.state == NOT_STAGED {
 				continue
+			}
+
+			selected := false
+			if selected_coll_idx == i && (selected_entry_idx == j || selected_entry_idx == -1) {
+				selected = true
 			}
 
 			entry.amount *= float64(collection.amount)
@@ -77,10 +80,11 @@ func ListEntriesForExport(collections []list_entry_collection) map[category][]*e
 						amount:         entry.amount,
 						state:          entry.state,
 						list_entry_ids: []int{entry.id},
+						selected:       selected,
 					},
 				}
 			} else {
-				work_structure[entry.category][entry.name] = mergeOrInsertIntoExportEntryList(export_entry_list, entry)
+				work_structure[entry.category][entry.name] = mergeOrInsertIntoNameExportEntryList(export_entry_list, entry, selected)
 			}
 		}
 	}
@@ -88,7 +92,7 @@ func ListEntriesForExport(collections []list_entry_collection) map[category][]*e
 	return flattenExportStrucutre(work_structure)
 }
 
-func mergeOrInsertIntoExportEntryList(export_entry_list []*export_entry, entry list_entry) []*export_entry {
+func mergeOrInsertIntoNameExportEntryList(export_entry_list []*export_entry, entry list_entry, selected bool) []*export_entry {
 	var transformation_info transformation_info
 	var exact_match bool = false
 	var target_entry *export_entry
@@ -104,6 +108,7 @@ func mergeOrInsertIntoExportEntryList(export_entry_list []*export_entry, entry l
 			transformation_info = ti
 		}
 	}
+
 	if target_entry != nil {
 		if exact_match {
 			target_entry.amount += entry.amount
@@ -117,7 +122,8 @@ func mergeOrInsertIntoExportEntryList(export_entry_list []*export_entry, entry l
 
 		target_entry.state = MergeStagingState(target_entry.state, entry.state)
 		target_entry.list_entry_ids = append(target_entry.list_entry_ids, entry.id)
-		slices.Sort(target_entry.list_entry_ids)
+
+		target_entry.selected = target_entry.selected || selected
 	} else {
 		export_entry_list = append(
 			export_entry_list,
@@ -127,6 +133,7 @@ func mergeOrInsertIntoExportEntryList(export_entry_list []*export_entry, entry l
 				amount:         entry.amount,
 				state:          entry.state,
 				list_entry_ids: []int{entry.id},
+				selected:       selected,
 			},
 		)
 	}
@@ -165,16 +172,8 @@ func (e export_model) buildExportString(with_styles bool, selected_entry_id int)
 		list_string.WriteString(heading)
 		list_string.WriteString("\n")
 		for _, entry := range e.structure[category] {
-			selected := false
-			if with_styles {
-				for _, id := range entry.list_entry_ids {
-					if id == selected_entry_id {
-						selected = true
-					}
-				}
-			}
 			list_entry := checkboxListEntryString(entry)
-			if selected {
+			if entry.selected {
 				list_string.WriteString(selected_entry_style.Render(list_entry))
 			} else {
 				list_string.WriteString(entry_style.Render(list_entry))
@@ -211,7 +210,7 @@ func headingString(heading string) string {
 
 func SplitAfterNthLineBreak(s string, n int) (head, tail string) {
 	count := 0
-    for i := 0; i < len(s); i++ {
+	for i := 0; i < len(s); i++ {
 		if s[i] == '\n' {
 			count++
 			if count == n {

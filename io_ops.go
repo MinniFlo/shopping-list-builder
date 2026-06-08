@@ -78,14 +78,14 @@ func extractListEntriesFromFile(path string, mapping map[string]int) []list_entr
 	}
 	defer file.Close()
 
-	var incredience []list_entry
+	var entries []list_entry
 	scanner := bufio.NewScanner(file)
 
 	for scanner.Scan() {
 		row := scanner.Text()
 
 		if inc, err := createListEntryFromString(row, mapping); err == nil {
-			incredience = append(incredience, inc)
+			entries = append(entries, inc)
 		}
 	}
 
@@ -93,7 +93,7 @@ func extractListEntriesFromFile(path string, mapping map[string]int) []list_entr
 		fmt.Println(err)
 	}
 
-	return incredience
+	return entries
 }
 
 func renderShoppingListToFile(shopping_list_file_path string, list_string string) {
