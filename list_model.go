@@ -62,10 +62,14 @@ func (m list_model) Update(msg tea.Msg) (list_model, tea.Cmd) {
 		case key.Matches(msg, default_key_map.Right):
 			if inc, err := m.currentEntry(); err == nil {
 				inc.state.Next()
+			} else {
+				m.batchIncrementState()
 			}
 		case key.Matches(msg, default_key_map.Left):
 			if inc, err := m.currentEntry(); err == nil {
 				inc.state.Prev()
+			} else {
+				m.batchDecrementState()
 			}
 		}
 	}
@@ -139,9 +143,24 @@ func (m *list_model) HandleUpMotion() {
 		m.entry_index = len(m.collections[m.collection_index].entries) - 1
 	}
 }
+
 func (m *list_model) batchSetCategory(category_number int) {
-	for _, e := range m.currentCollection().entries {
-		// TODO: use reference
-		e.category = CategoryFromInt(category_number)
+	coll := m.currentCollection()
+	for i := range coll.entries {
+		coll.entries[i].category = CategoryFromInt(category_number)
+	}
+}
+
+func (m *list_model) batchIncrementState() {
+	coll := m.currentCollection()
+	for i := range coll.entries {
+		coll.entries[i].state.Next()
+	}
+}
+
+func (m *list_model) batchDecrementState() {
+	coll := m.currentCollection()
+	for i := range coll.entries {
+		coll.entries[i].state.Prev()
 	}
 }
