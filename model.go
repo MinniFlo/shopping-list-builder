@@ -18,6 +18,8 @@ type model struct {
 	style              Style
 	list               list_model
 	export             export_model
+	exportConfirm      confirmation_model
+	confirmMenuOpen    bool
 }
 
 func initialModel() model {
@@ -27,17 +29,20 @@ func initialModel() model {
 	help := help.New()
 	list := initialListModel(collections)
 	export := initialExportModel(collections, list.collection_index, list.entry_index)
+	exportConfirm := initialConfrimationModel()
 
 	return model{
-		cfg:      cfg,
-		mapping:  mapping,
-		help:     help,
-		width:    0,
-		height:   0,
-		bg_color: "",
-		fg_color: "",
-		list:     list,
-		export:   export,
+		cfg:             cfg,
+		mapping:         mapping,
+		help:            help,
+		width:           0,
+		height:          0,
+		bg_color:        "",
+		fg_color:        "",
+		list:            list,
+		export:          export,
+		exportConfirm:   exportConfirm,
+		confirmMenuOpen: false,
 	}
 }
 
@@ -63,11 +68,18 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		switch {
 		case key.Matches(msg, default_key_map.Quit):
-			return m, tea.Quit
+			if m.confirmMenuOpen {
+				m.confirmMenuOpen = false
+			} else {
+				return m, tea.Quit
+			}
 		case key.Matches(msg, default_key_map.Confirm):
-			renderShoppingListToFile(m.cfg.ShoppingListPath, m.export.buildExportString(false, m.list.GetCurrentPositionID()))
-			m.UpdateMapping()
-			saveMapping(m.mapping)
+			if m.confirmMenuOpen {
+				m.doExportActions()
+				m.confirmMenuOpen = false
+			} else {
+				m.confirmMenuOpen = true
+			}
 		case key.Matches(msg, default_key_map.Help):
 			m.help.ShowAll = !m.help.ShowAll
 		default:
@@ -106,9 +118,19 @@ func (m model) View() tea.View {
 	document := m.style.docStyle.Render(join_view)
 
 	help_height := strings.Count(help_view, "\n")
-	layers := []*lipgloss.Layer{
-		lipgloss.NewLayer(document),
-		lipgloss.NewLayer(help_view).Y(m.height - (help_height)),
+	var layers []*lipgloss.Layer
+
+	if m.confirmMenuOpen {
+		layers = []*lipgloss.Layer{
+			lipgloss.NewLayer(document),
+			lipgloss.NewLayer(help_view).Y(m.height - (help_height)),
+			lipgloss.NewLayer(m.exportConfirm.View().Content).Y(int(m.height / 2) - int(m.exportConfirm.style.minHeight/2)).X(int(m.width / 2) - int(m.exportConfirm.style.minWidth/2)),
+		}
+	} else {
+		layers = []*lipgloss.Layer{
+			lipgloss.NewLayer(document),
+			lipgloss.NewLayer(help_view).Y(m.height - (help_height)),
+		}
 	}
 
 	comp := lipgloss.NewCompositor(layers...)
@@ -123,6 +145,7 @@ func (m *model) setStyle() {
 	m.style = style
 	m.list.style = style.listStyle
 	m.export.style = style.exportStyle
+	m.exportConfirm.style = style.confirmMenuStyle
 }
 
 func (m *model) UpdateMapping() {
@@ -131,4 +154,10 @@ func (m *model) UpdateMapping() {
 			m.mapping[entry.name] = entry.category.ToInt()
 		}
 	}
+}
+
+func (m *model) doExportActions() {
+	renderShoppingListToFile(m.cfg.ShoppingListPath, m.export.buildExportString(false, m.list.GetCurrentPositionID()))
+	m.UpdateMapping()
+	saveMapping(m.mapping)
 }

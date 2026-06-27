@@ -39,12 +39,23 @@ type ExportStyle struct {
 	selected_entry lipgloss.Style
 }
 
+type ConfirmMenuStyle struct {
+	colors        Colors
+	minWidth      int
+	minHeight     int
+	menu          lipgloss.Style
+	description   lipgloss.Style
+	confirmButton lipgloss.Style
+	cancelButton  lipgloss.Style
+}
+
 type Style struct {
-	colors      Colors
-	docStyle    lipgloss.Style
-	title       lipgloss.Style
-	listStyle   ListStyle
-	exportStyle ExportStyle
+	colors           Colors
+	docStyle         lipgloss.Style
+	title            lipgloss.Style
+	listStyle        ListStyle
+	exportStyle      ExportStyle
+	confirmMenuStyle ConfirmMenuStyle
 }
 
 func BuildStyle(bg_color, fg_color string) Style {
@@ -70,8 +81,8 @@ func BuildStyle(bg_color, fg_color string) Style {
 
 		table: lipgloss.NewStyle().Margin(0, 1, 0, 1),
 
-		collection_header:                 lipgloss.NewStyle().Padding(0, 1, 0, 1).Bold(true),
-		collection_header_selected:        lipgloss.NewStyle().Padding(0, 1, 0, 1).Bold(true).Foreground(black).Background(highlight),
+		collection_header:                 lipgloss.NewStyle().Padding(0, 1).Bold(true),
+		collection_header_selected:        lipgloss.NewStyle().Padding(0, 1).Bold(true).Foreground(black).Background(highlight),
 		collection_header_amount:          lipgloss.NewStyle().Bold(true).Foreground(light_white).PaddingRight(1),
 		collection_header_amount_selected: lipgloss.NewStyle().Bold(true).Foreground(light_black).Background(highlight).PaddingRight(1),
 
@@ -79,9 +90,9 @@ func BuildStyle(bg_color, fg_color string) Style {
 		entry_odd:      lipgloss.NewStyle().Foreground(light_white).Background(light_black),
 		entry_selected: lipgloss.NewStyle().Foreground(light_black).Background(highlight),
 
-		col:        lipgloss.NewStyle().Padding(0, 1, 0, 1),
-		name_col:   lipgloss.NewStyle().Width(35).Padding(0, 1, 0, 1),
-		amount_col: lipgloss.NewStyle().Width(9).AlignHorizontal(lipgloss.Right).Padding(0, 1, 0, 1),
+		col:        lipgloss.NewStyle().Padding(0, 1),
+		name_col:   lipgloss.NewStyle().Width(35).Padding(0, 1),
+		amount_col: lipgloss.NewStyle().Width(9).AlignHorizontal(lipgloss.Right).Padding(0, 1),
 		unit_col:   lipgloss.NewStyle().Width(5).Padding(0, 1, 0, 0),
 	}
 
@@ -91,6 +102,18 @@ func BuildStyle(bg_color, fg_color string) Style {
 		heading:        lipgloss.NewStyle().Padding(0, 1).Bold(true).Foreground(highlight).Width(40),
 		entry:          lipgloss.NewStyle().Padding(0, 1).Foreground(light_white).Width(40),
 		selected_entry: lipgloss.NewStyle().Padding(0, 1).Foreground(light_white).Background(light_black).Width(40),
+	}
+
+	minWidth := 45
+	minHeight := 5
+	confirmMenuStyle := ConfirmMenuStyle{
+		colors:        colors,
+		minWidth:      minWidth - 2,
+		minHeight:     minHeight,
+		menu:          lipgloss.NewStyle().Width(minWidth).Height(minHeight).BorderStyle(lipgloss.NormalBorder()),
+		description:   lipgloss.NewStyle().Width(minWidth - 2).Align(lipgloss.Center),
+		confirmButton: lipgloss.NewStyle().Padding(0, 1).Margin(1, 0, 0, 6).Bold(true).Foreground(colors.black).Background(colors.primary),
+		cancelButton:  lipgloss.NewStyle().Padding(0, 1).MarginTop(1).Bold(true).Foreground(colors.black).Background(colors.highlight),
 	}
 
 	return Style{
@@ -104,7 +127,8 @@ func BuildStyle(bg_color, fg_color string) Style {
 			Foreground(black).
 			Background(primary),
 
-		listStyle:   listStyle,
-		exportStyle: exportStyle,
+		listStyle:        listStyle,
+		exportStyle:      exportStyle,
+		confirmMenuStyle: confirmMenuStyle,
 	}
 }
