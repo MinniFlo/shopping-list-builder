@@ -16,19 +16,21 @@ type Colors struct {
 }
 
 type ListStyle struct {
-	colors                            Colors
-	table                             lipgloss.Style
-	collection_header                 lipgloss.Style
-	collection_header_selected        lipgloss.Style
-	collection_header_amount          lipgloss.Style
-	collection_header_amount_selected lipgloss.Style
-	entry                             lipgloss.Style
-	entry_odd                         lipgloss.Style
-	entry_selected                    lipgloss.Style
-	col                               lipgloss.Style
-	name_col                          lipgloss.Style
-	amount_col                        lipgloss.Style
-	unit_col                          lipgloss.Style
+	colors                                   Colors
+	table                                    lipgloss.Style
+	collection_header                        lipgloss.Style
+	collection_header_selected               lipgloss.Style
+	collection_header_amount                 lipgloss.Style
+	collection_header_amount_selected        lipgloss.Style
+	collection_strikethrough_header          lipgloss.Style
+	collection_strikethrough_header_selected lipgloss.Style
+	entry                                    lipgloss.Style
+	entry_odd                                lipgloss.Style
+	entry_selected                           lipgloss.Style
+	col                                      lipgloss.Style
+	name_col                                 lipgloss.Style
+	amount_col                               lipgloss.Style
+	unit_col                                 lipgloss.Style
 }
 
 type ExportStyle struct {
@@ -81,10 +83,12 @@ func BuildStyle(bg_color, fg_color string) Style {
 
 		table: lipgloss.NewStyle().Margin(0, 1, 0, 1),
 
-		collection_header:                 lipgloss.NewStyle().Padding(0, 1).Bold(true),
-		collection_header_selected:        lipgloss.NewStyle().Padding(0, 1).Bold(true).Foreground(black).Background(highlight),
-		collection_header_amount:          lipgloss.NewStyle().Bold(true).Foreground(light_white).PaddingRight(1),
-		collection_header_amount_selected: lipgloss.NewStyle().Bold(true).Foreground(light_black).Background(highlight).PaddingRight(1),
+		collection_header:                        lipgloss.NewStyle().Padding(0, 1).Bold(true),
+		collection_header_selected:               lipgloss.NewStyle().Padding(0, 1).Bold(true).Foreground(black).Background(highlight),
+		collection_header_amount:                 lipgloss.NewStyle().Bold(true).Foreground(light_white).PaddingRight(1),
+		collection_header_amount_selected:        lipgloss.NewStyle().Bold(true).Foreground(light_black).Background(highlight).PaddingRight(1),
+		collection_strikethrough_header:          lipgloss.NewStyle().Bold(true).Foreground(light_white).Padding(0, 1).Strikethrough(true).Faint(true),
+		collection_strikethrough_header_selected: lipgloss.NewStyle().Bold(true).Foreground(light_black).Background(highlight).Padding(0, 1).Strikethrough(true),
 
 		entry:          lipgloss.NewStyle().Foreground(light_white),
 		entry_odd:      lipgloss.NewStyle().Foreground(light_white).Background(light_black),

@@ -6,14 +6,33 @@ import (
 )
 
 type list_entry_collection struct {
-	name    string
-	entries []list_entry
-	amount  int
+	name             string
+	entries          []list_entry
+	amount           int
+	allready_checked bool
 }
 
 func (collection *list_entry_collection) buildHeader(selected bool, style ListStyle) string {
 	var name_style lipgloss.Style
 	var amount_style lipgloss.Style
+
+	not_staged := true
+
+	for _, entry := range collection.entries {
+		if entry.state != NOT_STAGED {
+			not_staged = false
+			break
+		}
+	}
+
+	if not_staged {
+		if selected {
+			name_style = style.collection_strikethrough_header_selected
+		} else {
+			name_style = style.collection_strikethrough_header
+		}
+		return name_style.Render(collection.name)
+	}
 
 	if selected {
 		name_style = style.collection_header_selected

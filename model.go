@@ -98,7 +98,6 @@ func (m model) View() tea.View {
 	var doc strings.Builder
 
 	if m.bg_color == "" || m.fg_color == "" {
-		doc.WriteString("Loading ...")
 		return tea.NewView(doc.String())
 	}
 

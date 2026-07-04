@@ -39,11 +39,12 @@ func extractRecipesFromMealPlan(meal_plan_path string, recipes_path string, mapp
 
 	for scanner.Scan() {
 		row := scanner.Text()
-		re := regexp.MustCompile(`- \[ \].*\[\[(.*)\]\]`)
+		re := regexp.MustCompile(`- \[(.)\].*\[\[(.*)\]\]`)
 		match := re.FindStringSubmatch(row)
 
 		if match != nil {
-			recipe := list_entry_collection{name: match[1], amount: 1}
+			allready_checked := match[1] != " ";
+			recipe := list_entry_collection{name: match[2], amount: 1, allready_checked: allready_checked}
 			recipes = append(recipes, recipe)
 		}
 	}
@@ -54,14 +55,14 @@ func extractRecipesFromMealPlan(meal_plan_path string, recipes_path string, mapp
 
 	for i, recipe := range recipes {
 		path := fmt.Sprintf("%s%s.md", recipes_path, recipe.name)
-		recipes[i].entries = extractListEntriesFromFile(path, mapping)
+		recipes[i].entries = extractListEntriesFromFile(path, mapping, recipe.allready_checked)
 	}
 
 	return recipes
 }
 
 func extractCurrentListEntriesFromShoppingList(shopping_list_path string, mapping map[string]int) (list_entry_collection, error) {
-	entries := extractListEntriesFromFile(shopping_list_path, mapping)
+	entries := extractListEntriesFromFile(shopping_list_path, mapping, false)
 
 	if len(entries) == 0 {
 		return list_entry_collection{}, errors.New("No Items found on Soppinglist")
@@ -70,7 +71,7 @@ func extractCurrentListEntriesFromShoppingList(shopping_list_path string, mappin
 	return list_entry_collection{name: "Zeugs von der Einkaufslist:", amount: 1, entries: entries}, nil
 }
 
-func extractListEntriesFromFile(path string, mapping map[string]int) []list_entry {
+func extractListEntriesFromFile(path string, mapping map[string]int, not_staged bool) []list_entry {
 	file, err := os.Open(path)
 	if err != nil {
 		fmt.Printf("Failed to open the recipe with error: %v\n\n", err)
@@ -84,7 +85,7 @@ func extractListEntriesFromFile(path string, mapping map[string]int) []list_entr
 	for scanner.Scan() {
 		row := scanner.Text()
 
-		if inc, err := createListEntryFromString(row, mapping); err == nil {
+		if inc, err := createListEntryFromString(row, mapping, not_staged); err == nil {
 			entries = append(entries, inc)
 		}
 	}
